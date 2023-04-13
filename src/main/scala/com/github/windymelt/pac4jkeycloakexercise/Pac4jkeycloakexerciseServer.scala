@@ -1,7 +1,6 @@
 package com.github.windymelt.pac4jkeycloakexercise
 
 import cats.effect.Async
-import cats.syntax.all._
 import com.comcast.ip4s._
 import org.http4s.ember.client.EmberClientBuilder
 import org.http4s.ember.server.EmberServerBuilder
@@ -12,24 +11,22 @@ object Pac4jkeycloakexerciseServer {
 
   def run[F[_]: Async]: F[Nothing] = {
     for {
-      client <- EmberClientBuilder.default[F].build
-      helloWorldAlg = HelloWorld.impl[F]
-      jokeAlg = Jokes.impl[F](client)
+      _ <- EmberClientBuilder.default[F].build
 
       // Combine Service Routes into an HttpApp.
       // Can also be done via a Router if you
       // want to extract segments not checked
       // in the underlying routes.
       httpApp = (
-        Pac4jkeycloakexerciseRoutes.helloWorldRoutes[F](helloWorldAlg) <+>
-        Pac4jkeycloakexerciseRoutes.jokeRoutes[F](jokeAlg)
+        Pac4jkeycloakexerciseRoutes.rootRoute[F]
       ).orNotFound
 
       // With Middlewares in place
       finalHttpApp = Logger.httpApp(true, true)(httpApp)
 
-      _ <- 
-        EmberServerBuilder.default[F]
+      _ <-
+        EmberServerBuilder
+          .default[F]
           .withHost(ipv4"0.0.0.0")
           .withPort(port"8080")
           .withHttpApp(finalHttpApp)

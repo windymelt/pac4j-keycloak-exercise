@@ -7,27 +7,20 @@ import org.http4s.dsl.Http4sDsl
 
 object Pac4jkeycloakexerciseRoutes {
 
-  def jokeRoutes[F[_]: Sync](J: Jokes[F]): HttpRoutes[F] = {
-    val dsl = new Http4sDsl[F]{}
+  def rootRoute[F[_]: Sync]: HttpRoutes[F] = {
+    val dsl = new Http4sDsl[F] {}
     import dsl._
-    HttpRoutes.of[F] {
-      case GET -> Root / "joke" =>
-        for {
-          joke <- J.get
-          resp <- Ok(joke)
-        } yield resp
-    }
-  }
+    HttpRoutes.of[F] { case GET -> Root =>
+      import org.http4s.headers.`Content-Type`
+      import org.http4s.MediaType
 
-  def helloWorldRoutes[F[_]: Sync](H: HelloWorld[F]): HttpRoutes[F] = {
-    val dsl = new Http4sDsl[F]{}
-    import dsl._
-    HttpRoutes.of[F] {
-      case GET -> Root / "hello" / name =>
-        for {
-          greeting <- H.hello(HelloWorld.Name(name))
-          resp <- Ok(greeting)
-        } yield resp
+      Ok("""<html>
+<body>
+root
+</body>
+</html>
+""".stripMargin).map(_.withContentType(`Content-Type`(MediaType.text.html)))
+
     }
   }
 }
