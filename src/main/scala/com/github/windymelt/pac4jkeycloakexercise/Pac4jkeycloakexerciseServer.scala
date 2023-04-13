@@ -1,36 +1,32 @@
 package com.github.windymelt.pac4jkeycloakexercise
 
-import cats.effect.Async
+import cats.effect.ExitCode
+import cats.effect.IO
+import cats.effect.std.Dispatcher
 import com.comcast.ip4s._
-import org.http4s.ember.client.EmberClientBuilder
 import org.http4s.ember.server.EmberServerBuilder
-import org.http4s.implicits._
 import org.http4s.server.middleware.Logger
+import org.pac4j.http4s.Http4sWebContext
 
 object Pac4jkeycloakexerciseServer {
-
-  def run[F[_]: Async]: F[Nothing] = {
-    for {
-      _ <- EmberClientBuilder.default[F].build
-
-      // Combine Service Routes into an HttpApp.
-      // Can also be done via a Router if you
-      // want to extract segments not checked
-      // in the underlying routes.
-      httpApp = (
-        Pac4jkeycloakexerciseRoutes.rootRoute[F]
-      ).orNotFound
-
-      // With Middlewares in place
-      finalHttpApp = Logger.httpApp(true, true)(httpApp)
-
-      _ <-
-        EmberServerBuilder
-          .default[F]
-          .withHost(ipv4"0.0.0.0")
-          .withPort(port"8080")
-          .withHttpApp(finalHttpApp)
-          .build
-    } yield ()
-  }.useForever
+  lazy val run: IO[ExitCode] = Dispatcher
+    .parallel[IO]
+    .use { d =>
+      EmberServerBuilder
+        .default[IO]
+        .withHost(ipv4"0.0.0.0")
+        .withPort(port"8080")
+        .withHttpApp(
+          Logger.httpApp(true, true)(
+            ({
+              val routes = new Pac4jkeycloakexerciseRoutes(
+                Http4sWebContext.withDispatcherInstance(d)
+              )
+              routes.loginRoute
+            }).orNotFound
+          )
+        )
+        .build
+        .useForever
+    } >> IO.pure(ExitCode.Success)
 }
